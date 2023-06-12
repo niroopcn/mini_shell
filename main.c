@@ -3,7 +3,7 @@ Name: Niroop C Naik
 Date: June 8th 2023
 Description: P1 :- Minishell
 Features:
-1. Prompt for the user to enter commands
+1. Prompt user for command, customizable prompt using environmental variable PS1; ex: PS1=newprompt
 2. Execute the command entered by the user
 3. Special Variables: echo $$, echo $? and echo $SHELL
 4. Signal handling: SIGINT(Ctrl + C), SIGTSTP(Ctrl + Z)
