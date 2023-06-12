@@ -1,0 +1,4 @@
+thunder*
+*.o
+a.out
+.vscode/
