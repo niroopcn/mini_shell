@@ -1,7 +1,5 @@
 #include "main.h"
 
-extern char shell_dir[200]; /*To display shell directory*/
-
 void echo(char *input_string)
 {
     /*Check if $ is innvoked*/

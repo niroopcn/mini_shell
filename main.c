@@ -2,21 +2,38 @@
 Name: Niroop C Naik
 Date: June 8th 2023
 Description: P1 :- Minishell
+Features:
+1. Prompt for the user to enter commands
+2. Execute the command entered by the user
+3. Special Variables: echo $$, echo $? and echo $SHELL
+4. Signal handling: SIGINT(Ctrl + C), SIGTSTP(Ctrl + Z)
+5. Built-in commands: cd, exit
+6. Pipe functionality: ls -l | grep a | wc
 */
 
 #include "main.h"
 
 /*Initialize character arrays to store prompt and input string*/
 char prompt[25] = "msh", input_string[25] = {0};
-
 char shell_dir[200]; /*To display shell directory*/
 char cwd[200];		 /*To store current Working Directory*/
 int exit_status;	 /*To collect exit status of previously running command*/
-extern char **external_commands;
+int argc;
+char **argv;
 
 int main()
 {
-	signal(SIGINT, signal_handler);
+	/* Allocate memory for the argument array */
+	argc = 0;									 /* Argument count */
+	argv = (char **)malloc(20 * sizeof(char *)); /*20 is max args*/
+	if (argv == NULL)
+	{
+		printf("Memory allocation failed!\n");
+		exit(EXIT_FAILURE);
+	}
+
+	/*Signal handling for SIGINT(Ctrl + C), SIGTSTP(Ctrl + Z)*/
+	register_signals();
 
 	getcwd(shell_dir, 200);		 /*Store $SHELL binary directory*/
 	extract_external_commands(); /*Extract external command list from a file*/
@@ -41,6 +58,7 @@ void scan_input(char *prompt, char *input_string)
 		scanf("%[^\n]s", input_string); /*Read input from user*/
 		while (getchar() != '\n')
 			;
+		convert_to_argv_format(); /*Convert string to argv format*/
 
 		/*Code to customise prompt*/
 		if (!strncmp("PS1=", input_string, 4))
@@ -62,6 +80,12 @@ void scan_input(char *prompt, char *input_string)
 			break;
 		default:
 		{
+			/*Check if pipe are passed and execute*/
+			if (n_pipes(argc, argv) != 0)
+			{
+				break;	/*break out of switch*/
+			}
+
 			/*get command passed*/
 			char *cmd = get_command(input_string);
 			// printf("cmd %s\n", cmd);
@@ -94,18 +118,66 @@ void scan_input(char *prompt, char *input_string)
 					execute_cmd_in_child(input_string);
 			}
 		}
-		break;
 		}
+		free_argv();
 	}
 }
 
-void signal_handler(int signum) //, siginfo_t *ptr, void *data)
+/*To handle signal to terminate a process*/
+void sigint_handler(int signum) //, siginfo_t *ptr, void *data)
 {
 	printf("\n");
 	if (signum == SIGINT)
 	{
-		getcwd(cwd, 200); /*get current working directory to display with prompt*/
-		printf(ANSI_COLOR_GREEN "%s:%s$ " ANSI_COLOR_RESET, prompt, cwd);
-		fflush(stdout);
+		if (global_child_pid == 0)
+		{
+			getcwd(cwd, 200); /*get current working directory to display with prompt*/
+			printf(ANSI_COLOR_GREEN "%s:%s$ " ANSI_COLOR_RESET, prompt, cwd);
+			fflush(stdout);
+		}
+		else
+		{
+			kill(SIGINT, global_child_pid);
+			printf("Process %d Terminated\t (%s)\n", global_child_pid, input_string);
+			global_child_pid = 0;
+		}
 	}
+}
+
+/*To handle signal to stop a process*/
+void signal_handler(int signum, siginfo_t *siginfo, void *data)
+{
+	if (signum == SIGTSTP)
+	{
+		if (global_child_pid != 0)
+		{
+			kill(global_child_pid, SIGTSTP);
+			printf("\nProcess %d Stopped\t (%s)\n", global_child_pid, input_string);
+			global_child_pid = 0;
+		}
+	}
+	if(signum == SIGCHLD)
+	{
+
+	}
+}
+
+void register_signals()
+{
+	/*Register SIGINT(Ctrl + C) Signal*/
+	signal(SIGINT, sigint_handler);
+
+	/*Register SIGTSTP(Ctrl + Z) Signal*/
+	struct sigaction act_sigtstp;
+	memset(&act_sigtstp, 0, sizeof(act_sigtstp)); /*Clear memory*/
+	act_sigtstp.sa_sigaction = signal_handler;	  /*Assign signal handler*/
+	act_sigtstp.sa_flags = SA_SIGINFO;			  /*Assign flags*/
+	sigaction(SIGTSTP, &act_sigtstp, NULL);
+
+	/*Not yet Implemented - Register SIGCHLD for cleaning resources for background tasks*/
+	//struct sigaction act_sigchld;
+	//memset(&act_sigchld, 0, sizeof(act_sigchld));	  /*Clear memory*/
+	//act_sigchld.sa_sigaction = signal_handler;		  /*Assign signal handler*/
+	//act_sigchld.sa_flags = SA_SIGINFO | SA_NOCLDWAIT; /*Assign flags*/
+	//sigaction(SIGCHLD, &act_sigchld, NULL);
 }

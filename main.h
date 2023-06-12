@@ -28,8 +28,6 @@
 #define ANSI_COLOR_CYAN    "\x1b[36m"
 #define ANSI_COLOR_RESET   "\x1b[0m"
 
-extern int exit_status; /*To update exit_status of previously running command*/
-
 void extract_external_commands();
 void scan_input(char *prompt, char *input_string);
 char *get_command(char *input_string);
@@ -37,8 +35,24 @@ int check_command_type(char *command);
 void *check_builtin_or_external(void *param);
 //void copy_change(char *prompt, char *input_string);
 void echo(char *input_string);
-void execute_internal_commands(char *input_string);
-void execute_cmd_in_child(char *input_string);
-void signal_handler(int signum);// siginfo_t *ptr, void *data);
+void execute_internal_commands();
+void execute_cmd_in_child();
+
+void register_signals();
+void sigint_handler(int signum);// siginfo_t *ptr, void *data);
+void signal_handler(int signum, siginfo_t *siginfo, void *data);
+
+void convert_to_argv_format();
+void free_argv();
+int n_pipes(int argc, char *argv[]);
+
+/*linked global variables*/
+extern char **external_commands;
+extern int global_child_pid;
+extern int argc;
+extern char **argv;
+extern char input_string[25];
+extern int exit_status; /*To update exit_status of previously running command*/
+extern char shell_dir[200]; /*To display shell directory*/
 
 #endif

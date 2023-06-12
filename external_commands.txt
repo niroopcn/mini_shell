@@ -3,6 +3,7 @@ bunzip2
 busybox
 bzcat
 bzcmp
+make
 bzdiff
 bzegrep
 bzexe
@@ -75,6 +76,7 @@ mt
 mt-gnu
 mv
 nano
+wc
 nc
 nc.openbsd
 netcat
